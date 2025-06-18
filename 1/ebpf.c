@@ -118,13 +118,16 @@ static inline int match_wildcard(const char *pattern, const char *text) {
     act_star = &star[act_depth];
 
     while (*t) {
-        if (mode && (*p == '|' || *p == ']' || *p == ')')) {
-            if (*p == '|') t = *open_brackets_ptrs[act_depth - 1];
-            else {
-                open_brackets[act_depth - 1] = '\0';
-                open_brackets_ptrs[act_depth - 1] = NULL;
+        if (mode) {
+            if (!backslash && (*p == '|' || *p == ']' || *p == ')')) {
+                if (*p == '|') {
+                    t = *open_brackets_ptrs[act_depth - 1];
+                } else {
+                    open_brackets[act_depth - 1] = '\0';
+                    open_brackets_ptrs[act_depth - 1] = NULL;
+                }
             }
-        } else if (!mode && *p == '\\' && !backslash) backslash = 1;
+        } else if (*p == '\\' && !backslash) backslash = 1;
         else  {
             if (*p == '*' && !backslash) {
                 *act_star = p;      // Hvězdička = libovolný počet znaků
