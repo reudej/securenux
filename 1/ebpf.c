@@ -107,31 +107,36 @@ void setstar(char **star, int act_depth, char *new_pointer) {
 static inline int match_wildcard(const char *pattern, const char *text) {
     const char *p = pattern;
     const char *t = text;
-    const char *star[MAX_PARAM_DEPTH] = {NULL};
-    const char *match = NULL;
+    int act_depth = 0;
+    const char *star[MAX_PARAM_DEPTH+1] = {NULL};
+    const char *star_t[MAX_PARAM_DEPTH+1] = {NULL};
+    const char **act_star;
+    act_star = NULL;
+    const char **act_star_t;
+    act_star_t = NULL;
     int backslash = 0;
     char open_brackets[MAX_PARAM_DEPTH] = "";
     char *open_brackets_ptrs[MAX_PARAM_DEPTH] = {NULL};
-    int act_depth = 0;
     int mode = 0;
-    char **act_star;
-    act_star = &star[act_depth];
 
     while (*t) {
         if (mode) {
-            if (!backslash && (*p == '|' || *p == ']' || *p == ')')) {
+            if (!backslash && (*p == '|' || (act_depth > 0 && (*p == ']' || *p == ')')))) {
                 if (*p == '|') {
                     t = *open_brackets_ptrs[act_depth - 1];
                 } else {
-                    open_brackets[act_depth - 1] = '\0';
-                    open_brackets_ptrs[act_depth - 1] = NULL;
+                    open_brackets[--act_depth] = '\0';
+                    open_brackets_ptrs[act_depth] = NULL;
                 }
+                mode = 0;
             }
         } else if (*p == '\\' && !backslash) backslash = 1;
-        else  {
+        else {
             if (*p == '*' && !backslash) {
-                *act_star = p;      // Hvězdička = libovolný počet znaků
-                match = t;
+                act_star = &star[act_depth];
+                *act_star = p; 
+                act_star_t = &star_t[act_depth];
+                *act_star_t = t;
             } else if ((*p == "[" || *p == "(" ) && !backslash) {
                 concatchr(&open_brackets, *p, act_depth++);
             } else if ((*p == '?' && !backslash) || *p == *t) {
@@ -140,9 +145,9 @@ static inline int match_wildcard(const char *pattern, const char *text) {
                 mode = 1;
             } else if (*act_star) {
                 p = *act_star + 1;    // Vrátit se na předchozí hvězdičku
-                t = ++match;
+                t = *act_star_t + 1;
             } else {
-                return 0;        // Neshoda
+                mode = 1;
             }
             backslash = 0;
         }
